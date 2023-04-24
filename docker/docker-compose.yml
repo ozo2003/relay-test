@@ -1,0 +1,49 @@
+networks:
+    backend:
+        name: backend
+    frontend:
+        name: frontend
+
+services:
+    php:
+        image: ghcr.io/960018/php-fpm:testing-${ARCH}
+        container_name: ${PROJECT}php
+        networks:
+            - backend
+        volumes:
+            - ../src:/var/www/html/api
+        healthcheck:
+            test: "php-fpm-ping || exit 1"
+            interval: 15s
+            timeout: 5s
+            retries: 3
+            start_period: 15s
+        tty: true
+        stdin_open: true
+        shm_size: 4gb
+        tmpfs: /tmp
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        working_dir: /var/www/html/api
+        mem_limit: 4g
+        environment:
+            HTTP_HOST: "${DOMAIN}"
+    nginx:
+        image: ghcr.io/960018/nginx:${ARCH}
+        container_name: ${PROJECT}nginx
+        networks:
+            - backend
+            - frontend
+        volumes:
+            - ../src:/var/www/html
+            - ./conf.d:/etc/nginx/conf.d
+            - ./certs:/etc/ssl/private
+        tmpfs: /tmp
+        shm_size: 4gb
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        working_dir: /var/www/html
+        mem_limit: 64m
+        ports:
+            - 81:80
+            - 543:443
